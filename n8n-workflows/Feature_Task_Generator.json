@@ -1,0 +1,160 @@
+{
+  "name": "Feature_Task_Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-feature-tasks",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -320,
+        0
+      ],
+      "id": "44b661b5-c7c4-4e6c-91c0-acc93236d6f0",
+      "name": "Webhook",
+      "webhookId": "d5a85ce6-eb8e-4ee8-9dec-671d79c817de"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"tasks\": $json.response } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        560,
+        0
+      ],
+      "id": "99d14fb7-f6fa-43ed-931d-8bcd5c618604",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bb7c755c-fd8d-4da1-a0aa-2ecb993f684d",
+              "name": "feature_description",
+              "value": "={{ $json.body.input_data }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -96,
+        0
+      ],
+      "id": "742b50e0-8143-425d-a7b9-a38fa612b468",
+      "name": "Extract Feature"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/generate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama3\",\n  \"prompt\": \"You are a senior software engineer.\\nBreak the following feature idea into development tasks.\\nFeature: {{$json.feature_description}}\\nReturn a numbered list.\",\n  \"stream\": false\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        128,
+        0
+      ],
+      "id": "a72a197b-b86f-4665-8d20-64c5083bb993",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.first().json.response;\n\nconst tasks = [];\n\nfor (const line of text.split(\"\\n\")) {\n  const cleaned = line.trim();\n\n  if (cleaned.startsWith(\"*\")) {\n    tasks.push(cleaned.replace(\"*\", \"\").trim());\n  }\n\n  else if (/^\\d+\\./.test(cleaned)) {\n    tasks.push(cleaned.replace(/^\\d+\\.\\s*/, \"\"));\n  }\n}\n\nreturn [\n  {\n    json: {\n      tasks: tasks\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        336,
+        0
+      ],
+      "id": "f43883c6-ce78-4707-8163-2178aa506e55",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Feature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Feature": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "4181ecf9-f6f6-4487-8764-69896eedca08",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4d01f8f34a2e1e60b22afed18915e4e2be4e962d5be5308599e651aae7b4903e"
+  },
+  "id": "exSTbSb4tV4lmMTm",
+  "tags": []
+}
