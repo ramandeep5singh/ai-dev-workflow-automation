@@ -1,32 +1,15 @@
 from fastmcp import FastMCP
-import requests
+from tools.generate_feature_tasks import generate_feature_tasks
 
 mcp = FastMCP("dev-workflow-tools")
 
 
 @mcp.tool()
-def generate_feature_tasks(feature_description: str) -> dict:
+def generate_feature_tasks_tool(description: str):
     """
-    Generate development tasks from a feature description
-    using the n8n workflow.
+    Generate development tasks for implementing a software feature.
     """
-
-    url = "http://localhost:5678/webhook/generate-feature-tasks"
-
-    payload = {
-        "input_data": feature_description
-    }
-
-    response = requests.post(url, json=payload)
-
-    if response.headers.get("content-type","").startswith("application/json"):
-        return response.json()
-    else:
-        return {
-            "status_code": response.status_code,
-            "raw_response": response.text
-        }
-
+    return generate_feature_tasks(description)
 
 if __name__ == "__main__":
-    print(generate_feature_tasks("Build OAuth login system"))
+    mcp.run()
