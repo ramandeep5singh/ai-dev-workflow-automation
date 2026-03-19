@@ -10,14 +10,22 @@ def generate_feature_tasks_tool(description: str):
     """
     Generate development tasks for implementing a software feature.
     """
-    return generate_feature_tasks(description)
+    try:
+        return generate_feature_tasks(description)
+    except Exception as e:
+        print(f"Error generating feature tasks: {e}")
+        return []
 
 @mcp.tool()
 def generate_unit_tests_tool(code: str):
     """
     Generate Python unit tests for the provided code.
     """
-    return generate_unit_tests(code)
+    try:
+        return generate_unit_tests(code)
+    except Exception as e:
+        print(f"Error generating unit tests: {e}")
+        return []
 
 if __name__ == "__main__":
     mcp.run()

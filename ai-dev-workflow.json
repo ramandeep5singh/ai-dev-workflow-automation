@@ -12,7 +12,7 @@
       "typeVersion": 2.1,
       "position": [
         -320,
-        192
+        128
       ],
       "id": "44b661b5-c7c4-4e6c-91c0-acc93236d6f0",
       "name": "Webhook",
@@ -28,7 +28,7 @@
       "typeVersion": 1.5,
       "position": [
         1024,
-        192
+        128
       ],
       "id": "99d14fb7-f6fa-43ed-931d-8bcd5c618604",
       "name": "Respond to Webhook"
@@ -40,7 +40,7 @@
             {
               "id": "bb7c755c-fd8d-4da1-a0aa-2ecb993f684d",
               "name": "feature_description",
-              "value": "={{ $json.body.action}}",
+              "value": "={{ $json.body.input.feature_description}}",
               "type": "string"
             }
           ]
@@ -51,37 +51,10 @@
       "typeVersion": 3.4,
       "position": [
         128,
-        0
+        -64
       ],
       "id": "742b50e0-8143-425d-a7b9-a38fa612b468",
       "name": "Extract Feature"
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "http://host.docker.internal:11434/api/generate",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"phi3\",\n  \"prompt\": \"You are a senior software engineer.\\nBreak the following feature idea into development tasks.\\nFeature: {{$json.feature_description}}\\nReturn a numbered list.\",\n  \"stream\": false\n}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.4,
-      "position": [
-        352,
-        0
-      ],
-      "id": "a72a197b-b86f-4665-8d20-64c5083bb993",
-      "name": "HTTP Request"
     },
     {
       "parameters": {
@@ -97,7 +70,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ $json.body.action }}",
+                    "leftValue": "={{ $json.body.tool}}",
                     "rightValue": "generate_feature_tasks",
                     "operator": {
                       "type": "string",
@@ -120,7 +93,7 @@
                 "conditions": [
                   {
                     "id": "2777424f-d123-4eaf-ae76-2ae554912188",
-                    "leftValue": "={{ $json.body.action}}",
+                    "leftValue": "={{ $json.body.tool}}",
                     "rightValue": "generate_unit_tests",
                     "operator": {
                       "type": "string",
@@ -142,7 +115,7 @@
       "typeVersion": 3.4,
       "position": [
         -96,
-        176
+        112
       ],
       "id": "dd7b7632-042a-423c-a54e-bb3fb7cf753b",
       "name": "Switch"
@@ -154,7 +127,7 @@
             {
               "id": "024452e0-632b-441a-89fb-0a05236de54d",
               "name": "code",
-              "value": "{{$json.data.code}}",
+              "value": "{{$json.body.input.code}}",
               "type": "string"
             }
           ]
@@ -165,51 +138,33 @@
       "typeVersion": 3.4,
       "position": [
         128,
-        192
+        128
       ],
       "id": "5830e69b-0f2a-4161-ac22-47191f791d69",
       "name": "Extract Code"
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "http://host.docker.internal:11434/api/generate",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"phi3\",\n  \"prompt\": \"Generate Python pytest unit tests for the following code:\\n\\n{{$json.code}}\",\n  \"stream\": false\n}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.4,
-      "position": [
-        352,
-        192
-      ],
-      "id": "aa74384f-357c-4f8a-a98a-6a225b564e08",
-      "name": "HTTP Request1"
-    },
-    {
-      "parameters": {
-        "jsCode": "const text = $input.first().json.response;\n\n// remove markdown ```python ``` if present\nconst cleaned = text\n  .replace(/```python/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nreturn [\n  {\n    json: {\n      tests: cleaned\n    }\n  }\n];"
+        "jsCode": "const raw = $input.all()[0].json.response;\n\nconst cleaned = raw\n  .replace(/```python/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nreturn [\n  {\n    json: {\n      tool: \"generate_unit_tests\",\n      status: \"success\",\n      result: {\n        tests: [cleaned]\n      }\n    }\n  }\n];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         576,
-        192
+        128
       ],
       "id": "39b4c9f1-228f-466a-bbe9-458d976ce6e5",
       "name": "Format Unit Tests"
     },
     {
       "parameters": {
-        "jsCode": "const text = $input.first().json.response;\n\nconst tasks = [];\n\nfor (const line of text.split(\"\\n\")) {\n  const cleaned = line.trim();\n\n  if (cleaned.startsWith(\"*\")) {\n    tasks.push(cleaned.replace(\"*\", \"\").trim());\n  }\n\n  else if (/^\\d+\\./.test(cleaned)) {\n    tasks.push(cleaned.replace(/^\\d+\\.\\s*/, \"\"));\n  }\n}\n\nreturn [\n  {\n    json: {\n      tasks: tasks\n    }\n  }\n];"
+        "jsCode": "const raw = $input.all()[0].json.response;\n\n// remove markdown\nconst cleaned = raw\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet tasks = [];\n\ntry {\n  const parsed = JSON.parse(cleaned);\n\n  // CASE 1: tasks are objects with description\n  if (Array.isArray(parsed.tasks)) {\n    tasks = parsed.tasks.map(t =>\n      typeof t === \"string\" ? t : t.description || JSON.stringify(t)\n    );\n  }\n\n} catch (e) {\n  // fallback: extract descriptions manually\n  const matches = cleaned.match(/\"description\"\\s*:\\s*\"([^\"]+)\"/g);\n\n  if (matches) {\n    tasks = matches.map(m =>\n      m.replace(/\"description\"\\s*:\\s*\"/, \"\").replace(/\"$/, \"\")\n    );\n  }\n}\n\nreturn [\n  {\n    json: {\n      tool: \"generate_feature_tasks\",\n      status: \"success\",\n      result: {\n        tasks\n      }\n    }\n  }\n];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         576,
-        0
+        -64
       ],
       "id": "f43883c6-ce78-4707-8163-2178aa506e55",
       "name": "Format Tasks"
@@ -222,7 +177,7 @@
       "typeVersion": 3.2,
       "position": [
         800,
-        176
+        112
       ],
       "id": "2a2de939-ada9-4901-a5be-db3e3fa3a449",
       "name": "Merge"
@@ -245,13 +200,87 @@
       "typeVersion": 3.4,
       "position": [
         352,
-        432
+        336
       ],
       "id": "21a629e0-70d3-416f-a106-b77528ac231d",
       "name": "Unknown Action Handler"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/generate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"phi3\",\n  \"prompt\": \"You are a senior software engineer.\\n\\nBreak the following feature into clear development tasks.\\n\\nReturn ONLY valid JSON. No explanation.\\n\\nFormat:\\n{\\n  \\\"tasks\\\": [\\\"task 1\\\", \\\"task 2\\\"]\\n}\\n\\nFeature:\\n{{$json.input.feature_description}}\",\n  \"stream\": false\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        352,
+        -64
+      ],
+      "id": "a72a197b-b86f-4665-8d20-64c5083bb993",
+      "name": "Tasks Generator"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"phi3\",\n  \"prompt\": \"You are a senior Python developer.\\n\\nGenerate pytest unit tests for the following code.\\n\\nReturn ONLY valid JSON. No explanation.\\n\\nFormat:\\n{\\n  \\\"tests\\\": [\\n    \\\"test code 1\\\",\\n    \\\"test code 2\\\"\\n  ]\\n}\\n\\nCode:\\n{{$json.input.code.replace(/\\\"/g, '\\\\\\\"')}}\",\n  \"stream\": false\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        352,
+        128
+      ],
+      "id": "aa74384f-357c-4f8a-a98a-6a225b564e08",
+      "name": "Unit Tests Genrator"
     }
   ],
-  "pinData": {},
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "localhost:5678",
+            "user-agent": "python-requests/2.32.5",
+            "accept-encoding": "gzip, deflate",
+            "accept": "*/*",
+            "connection": "keep-alive",
+            "content-length": "180",
+            "content-type": "application/json"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "tool": "generate_feature_tasks",
+            "input": {
+              "feature_description": "Add a login page to the app, including UI form, authentication logic, session management, and error handling"
+            }
+          },
+          "webhookUrl": "http://localhost:5678/webhook/ai-dev-workflow",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
   "connections": {
     "Webhook": {
       "main": [
@@ -268,18 +297,7 @@
       "main": [
         [
           {
-            "node": "HTTP Request",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Request": {
-      "main": [
-        [
-          {
-            "node": "Format Tasks",
+            "node": "Tasks Generator",
             "type": "main",
             "index": 0
           }
@@ -315,18 +333,7 @@
       "main": [
         [
           {
-            "node": "HTTP Request1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Request1": {
-      "main": [
-        [
-          {
-            "node": "Format Unit Tests",
+            "node": "Unit Tests Genrator",
             "type": "main",
             "index": 0
           }
@@ -376,6 +383,28 @@
           }
         ]
       ]
+    },
+    "Tasks Generator": {
+      "main": [
+        [
+          {
+            "node": "Format Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unit Tests Genrator": {
+      "main": [
+        [
+          {
+            "node": "Format Unit Tests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -384,7 +413,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "53e661e5-53d1-47ee-9579-1d4bd52e4341",
+  "versionId": "48b414ed-e1da-4626-a5a9-c5a6cc897359",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "4d01f8f34a2e1e60b22afed18915e4e2be4e962d5be5308599e651aae7b4903e"

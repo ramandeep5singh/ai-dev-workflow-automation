@@ -1,8 +1,8 @@
 # 🚀 AI Dev Workflow Automation
 
-A modular AI-powered backend system to automate developer tasks using **n8n + MCP + Local LLM (Ollama)**.
+A modular AI-powered backend system that automates developer workflows using **MCP + n8n + Local LLMs (Ollama)**.
 
-This project acts as a **prototype/template** for building AI-driven developer tools.
+This project demonstrates how to build a **tool-based AI backend framework** with a unified API and extensible architecture.
 
 ---
 
@@ -10,30 +10,72 @@ This project acts as a **prototype/template** for building AI-driven developer t
 
 * Generate feature development tasks
 * Generate unit tests from code
-* Single API → multiple tools (via routing)
-* MCP integration with Claude Desktop
+* Unified tool-based API (single endpoint → multiple tools)
+* MCP integration (Claude Desktop compatible)
 * Fully local setup (no paid APIs required)
+* Structured JSON responses (consistent contract)
 
 ---
 
 ## 🧠 Architecture
 
+```
 Client (Claude / API)
-→ MCP Server (FastMCP - Python)
-→ n8n Webhook (Single Workflow)
-→ Switch (Routing)
-→ Ollama (Local LLM)
-→ Formatter → Merge → Response
+        ↓
+MCP Server (FastMCP - Python)
+        ↓
+n8n Webhook (Single Entry Point)
+        ↓
+Tool Router (Switch Node)
+        ↓
+Ollama (Local LLM)
+        ↓
+Response Formatter (Standardized Output)
+        ↓
+Client Response
+```
 
 ---
 
 ## ⚙️ Tech Stack
 
-* **n8n** – Workflow automation
-* **FastMCP (Python)** – Tool layer
-* **Ollama** – Local LLM (phi3 / llama3)
-* **Docker** – n8n runtime
-* **Git** – Version control
+* n8n – Workflow orchestration
+* FastMCP (Python) – Tool interface layer
+* Ollama – Local LLM (phi3 / llama3)
+* Docker – n8n runtime
+* Python – Backend logic
+* JavaScript (n8n nodes) – Output processing
+
+---
+
+## 🧩 Tool-Based Design
+
+Each capability is implemented as a **tool** with a shared contract.
+
+### Request Format
+
+```json
+{
+  "tool": "generate_feature_tasks",
+  "input": {
+    "feature_description": "Build login system"
+  }
+}
+```
+
+---
+
+### Response Format
+
+```json
+{
+  "tool": "generate_feature_tasks",
+  "status": "success",
+  "result": {
+    "tasks": ["..."]
+  }
+}
+```
 
 ---
 
@@ -68,9 +110,7 @@ pip install -r requirements.txt
 ### 4. Run n8n (Docker)
 
 ```bash
-docker run -it --rm `
--p 5678:5678 `
-n8nio/n8n
+docker run -it --rm -p 5678:5678 n8nio/n8n
 ```
 
 ---
@@ -78,13 +118,8 @@ n8nio/n8n
 ### 5. Import Workflow
 
 * Open: http://localhost:5678
-* Import file from:
-
-```bash
-ai-dev-workflow-automation/ai-dev-workflow.json
-```
-
-* Publish it for production
+* Import file: `ai-dev-workflow.json`
+* Activate the workflow (Production mode)
 
 ---
 
@@ -94,7 +129,7 @@ ai-dev-workflow-automation/ai-dev-workflow.json
 ollama run phi3
 ```
 
-(ensure Ollama is running in background)
+Ensure Ollama is running in the background.
 
 ---
 
@@ -107,8 +142,6 @@ python mcp-servers/server.py
 ---
 
 ### 8. Configure Claude Desktop
-
-Add MCP server config:
 
 ```json
 {
@@ -123,7 +156,7 @@ Add MCP server config:
 
 ## 🔗 API Endpoint
 
-```bash
+```
 http://localhost:5678/webhook/ai-dev-workflow
 ```
 
@@ -135,9 +168,9 @@ http://localhost:5678/webhook/ai-dev-workflow
 
 ```json
 {
-  "action": "generate_feature_tasks",
-  "data": {
-    "feature": "Build OAuth login system"
+  "tool": "generate_feature_tasks",
+  "input": {
+    "feature_description": "Build OAuth login system"
   }
 }
 ```
@@ -148,8 +181,8 @@ http://localhost:5678/webhook/ai-dev-workflow
 
 ```json
 {
-  "action": "generate_unit_tests",
-  "data": {
+  "tool": "generate_unit_tests",
+  "input": {
     "code": "def add(a,b): return a+b"
   }
 }
@@ -157,44 +190,44 @@ http://localhost:5678/webhook/ai-dev-workflow
 
 ---
 
-## 🧩 Key Learnings
+## 🧠 Key Concepts
 
-* Building **multi-action workflows using n8n**
-* Integrating **MCP server with Claude**
-* Handling **LLM output formatting**
-* Debugging **real-world integration issues**
-* Designing **modular AI backend systems**
+* Tool-based architecture for AI systems
+* Single entrypoint → multiple capabilities
+* Structured input/output contracts
+* LLM orchestration using n8n
+* Post-processing for reliable outputs
 
 ---
 
 ## ⚠️ Limitations
 
-* Local LLMs are **slow compared to cloud models**
-* Smaller models (phi3, llama3) may **hallucinate or produce inconsistent output**
-* Requires **manual prompt tuning** for better results
-* No authentication/security layer (prototype stage)
-* Not production-ready yet (local-first system)
+* Local LLMs are slower than cloud models
+* Smaller models (phi3) may produce inconsistent output
+* Requires prompt tuning for better results
+* No authentication (prototype stage)
+* Not production-ready yet
 
 ---
 
 ## 💡 Future Improvements
 
-* Add more tools (code review, bug detection, refactoring)
-* Improve prompt engineering for reliable outputs
-* Add database for storing history/logs
-* Deploy to cloud (public API)
-* Add authentication & monitoring
+* Add more tools (code review, refactoring, bug detection)
+* Introduce persistent storage (logs/history)
+* Add authentication layer
+* Improve response reliability with better models
+* Deploy as a cloud service
 
 ---
 
 ## 🧠 Summary
 
-This project is a **foundation for an AI-powered developer backend system**, demonstrating how to combine:
+This project demonstrates how to build a **modular AI backend system** by combining:
 
-* Workflow automation
-* Local LLMs
-* Tool orchestration
+* Workflow automation (n8n)
+* Local LLM inference (Ollama)
+* Tool orchestration (MCP)
 
-into a unified API.
+into a scalable and extensible developer automation framework.
 
 ---

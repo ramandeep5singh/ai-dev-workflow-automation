@@ -3,36 +3,57 @@ import requests
 N8N_WEBHOOK_URL = "http://localhost:5678/webhook/ai-dev-workflow"
 
 
-def generate_tasks(feature_description: str):
-
+def send_tool_request(tool: str, input: dict):
     payload = {
-        "action": "generate_feature_tasks",
-        "data": {
-            "feature": feature_description
-        }
+        "tool": tool,
+        "input": input
     }
+    try:
+        response = requests.post(
+            N8N_WEBHOOK_URL,
+            json=payload,
+            timeout=600
+        )
 
-    response = requests.post(
-        N8N_WEBHOOK_URL,
-        json=payload,
-        timeout=600
-    )
+        return response.json()
+    
+    except requests.exceptions.Timeout:
+        return {"error": "Request to n8n timed out"}
+    
+    except Exception as e:
+        return {"error": str(e)}
 
-    return response.json()
 
-def generate_unit_tests_n8n_client(code: str):
+# def generate_tasks(feature_description: str):
 
-    payload = {
-        "action": "generate_unit_tests",
-        "data": {
-            "code": code
-        }
-    }
+#     payload = {
+#         "tool": "generate_feature_tasks",
+#         "input": {
+#             "feature": feature_description
+#         }
+#     }
 
-    response = requests.post(
-        N8N_WEBHOOK_URL,
-        json=payload,
-        timeout=600
-    )
+#     response = requests.post(
+#         N8N_WEBHOOK_URL,
+#         json=payload,
+#         timeout=600
+#     )
 
-    return response.json()
+#     return response.json()
+
+# def generate_unit_tests_n8n_client(code: str):
+
+#     payload = {
+#         "tool": "generate_unit_tests",
+#         "input": {
+#             "code": code
+#         }
+#     }
+
+#     response = requests.post(
+#         N8N_WEBHOOK_URL,
+#         json=payload,
+#         timeout=600
+#     )
+
+#     return response.json()
